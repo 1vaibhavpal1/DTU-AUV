@@ -1,0 +1,71 @@
+#include<opencv2/imgcodecs.hpp>
+#include<opencv2/highgui.hpp>
+#include<opencv2/imgproc.hpp>
+#include<iostream>
+
+using namespace std;
+using namespace cv;
+
+void getContour(Mat imgDil,Mat img){
+    vector<vector<Point>> contour;
+    vector<Vec4i> heirachy;
+    findContours(imgDil,contour,heirachy,RETR_EXTERNAL,CHAIN_APPROX_SIMPLE);
+    vector<vector<Point>> conPoly(contour.size());
+    string Shape;
+    vector<Rect> boundRect(contour.size());
+    for(int i=0;i<contour.size();i++){
+        int area=contourArea(contour[i]);
+        int min;
+        if(area>1000){
+            float peri=arcLength(contour[i],true);
+            approxPolyDP(contour[i],conPoly[i],0.02*peri,true);
+            
+
+            boundRect[i]=boundingRect(conPoly[i]);
+            int cor=conPoly[i].size();
+            if(cor==3){
+                int area=contourArea(contour[i]);
+                if(area<min)
+                min=area;
+                Shape="Triangle";
+            }        
+            else if(cor==4){
+                float aspectRatio=(float)(boundRect[i].width/boundRect[i].height);
+                if(aspectRatio>0.9 && aspectRatio<1.1){
+                    Shape="Sqaure";
+                }
+                else
+                Shape="Rectangle";
+            }
+            else if(cor>4){
+                Shape="Circle";
+            }
+        }
+        if(area==min){
+            drawContours(img,contour,i,Scalar(0,69,255),2);
+        }
+            string area1=to_string(area);
+            area1="Area :"+area1;
+            float peri=arcLength(contour[i],true);
+            string peri1=to_string(peri);
+            peri1="Perimeter :"+peri1;
+            putText(img,Shape,{boundRect[i].x,boundRect[i].y-25},FONT_HERSHEY_DUPLEX,0.2,Scalar(0,69,255),1);
+            putText(img,area1,{boundRect[i].x,boundRect[i].y-15},FONT_HERSHEY_DUPLEX,0.2,Scalar(0,69,255),1);
+            putText(img,peri1,{boundRect[i].x,boundRect[i].y-5},FONT_HERSHEY_DUPLEX,0.2,Scalar(0,69,255),1);
+        }
+    }
+int main(){
+    Mat img,imgBlur,imgGrey,imgCanny,imgDil;
+    string path="Resources/shapes.jpeg";
+    img = imread(path);
+    cvtColor(img,imgGrey,COLOR_BGR2GRAY);
+    GaussianBlur(imgGrey,imgBlur,Size(3,3),3,0);
+    Canny(imgBlur,imgCanny,25,75);
+    Mat kernel=getStructuringElement(MORPH_RECT,Size(3,3));
+    dilate(imgCanny,imgDil,kernel);
+
+    getContour(imgDil,img);
+    imshow("Image",img);
+    waitKey(0);
+    return 0;
+}
