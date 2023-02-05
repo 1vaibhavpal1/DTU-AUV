@@ -1,0 +1,80 @@
+#include<iostream>
+#include<opencv2/imgproc.hpp>
+#include<opencv2/highgui.hpp>
+#include<opencv2/imgcodecs.hpp>
+
+using namespace std;
+using namespace cv;
+
+void ShiThomasi(Mat img){
+
+    Mat gray;
+    vector<Point2f> corners;
+    cvtColor(img,gray,COLOR_BGR2GRAY);
+    
+    goodFeaturesToTrack(gray,corners,90,0.09,10,Mat(),3,false,0.1);
+
+    //Pointing out circles
+    circle(img,corners[83],1,Scalar(0,0,255),3);
+    circle(img,corners[3],1,Scalar(0,0,255),3);
+    circle(img,corners[12],1,Scalar(0,0,255),3);
+    
+    //Drawing lines joinging circles
+    line(img,corners[3],corners[83],Scalar(0,0,0),2);
+    line(img,corners[12],corners[83],Scalar(0,0,0),2);
+    
+    //Calculating Slopes of Lines
+    double m1= (corners[83].y-corners[3].y)/(corners[83].x-corners[3].x);
+    double m2= (corners[83].y-corners[12].y)/(corners[83].x-corners[12].x);
+
+    //Calculating Angle wrt path
+    double angle=atan((m1-m2)/(1+m1*m2));
+
+    //Converting to degree
+    double deg=angle*(180/3.14);
+
+    //Angle to be shown
+    int final=180-deg;
+
+    //Angle of first line wrt x axis
+    double fang=(atan(m1))*(180/3.14)*-1;
+
+    //Putting Text
+    circle(img,corners[83],20,Scalar(255,0,0),2);
+    double sx=corners[83].x-100;
+    double sy=corners[83].y+10;
+    string ang= to_string(final);
+    ang=ang+"degrees";
+    putText(img,ang,Point(sx,sy),FONT_HERSHEY_DUPLEX,0.5,Scalar(0,0,0),0.5);
+
+    //Putting Text at the bottom
+    string fangs=to_string(fang);
+    string degs=to_string(deg);
+    string text1="AUV is first moving at an angle "+fangs+" degrees with respect to x axis ";
+    string text2="It then deflects at an angle "+degs+" degrees from its path";
+    putText(img,text1,Point(0,380),FONT_HERSHEY_DUPLEX,0.5,Scalar(0,0,0),0.5);
+    putText(img,text2,Point(0,400),FONT_HERSHEY_DUPLEX,0.5,Scalar(0,0,0),0.5);
+
+
+    //Simple output in terminal
+    cout<<"AUV is first moving at an angle "<<fang<<" degrees"<<endl;
+    cout<<"It then deflects at an angle "<<deg<<" degrees"<<" from its path"<<endl;
+}
+
+int main(){
+
+    //Loading Orignal Image
+    string path="Resources/Path.jpeg";
+    Mat img=imread(path);
+
+    //Cropping Before Processing
+   /* Rect roi(306,135,80,135);
+    Mat imgCrop=img(roi);*/
+
+    //Applying Corner Detector
+    ShiThomasi(img);
+
+    imshow("Image After Corner Detection",img);
+    waitKey(0);
+    return 0;
+}
